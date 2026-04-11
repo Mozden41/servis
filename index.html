@@ -6,36 +6,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
-    
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 10px; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 10px; margin: 0; }
         .panel { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #1a73e8; margin-bottom: 5px; }
+        .user-info { text-align: center; font-size: 14px; color: #555; margin-bottom: 15px; background: #e8f0fe; padding: 8px; border-radius: 10px; }
         .durak-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .durak-btn { 
-            padding: 20px 10px; border: 2px solid #ddd; border-radius: 12px; background: white;
-            cursor: pointer; font-size: 16px; display: flex; align-items: center; 
+            padding: 15px 10px; border: 2px solid #ddd; border-radius: 12px; background: white;
+            cursor: pointer; font-size: 15px; display: flex; flex-direction: column; align-items: center; transition: 0.2s;
         }
-        .no { background: #1a73e8; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: bold; }
-        .secili { background: #2ecc71 !important; color: white; border-color: #27ae60; }
+        .no { background: #1a73e8; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; font-weight: bold; font-size: 12px; }
+        .secili { background: #2ecc71 !important; color: white; border-color: #27ae60; box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3); }
+        .secili .no { background: white; color: #2ecc71; }
+        .bekleyenler { font-size: 11px; margin-top: 5px; font-weight: bold; text-align: center; }
+        
         .driver-zone { margin-top: 30px; background: #202124; color: white; padding: 20px; border-radius: 15px; text-align: center; }
-        .play-btn { background: #f4b400; color: #000; border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; }
+        .play-btn { background: #f4b400; color: #000; border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px; }
+        .clear-btn { background: #d32f2f; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 12px; cursor: pointer; width: 100%; opacity: 0.8; }
+        #durum { font-size: 13px; color: #9aa0a6; margin-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="panel">
-    <h2 style="text-align:center; color:#1a73e8;">🚌 Servis Bildir</h2>
+    <h2>🚌 Servis Bildir</h2>
+    <div id="userInfo" class="user-info">İsim ayarlanıyor...</div>
+    
     <div class="durak-grid" id="durakContainer"></div>
 
     <div class="driver-zone">
         <h3>👨‍✈️ Şoför Paneli</h3>
         <button class="play-btn" onclick="surusuBaslat()">SÜRÜŞÜ BAŞLAT 🔊</button>
-        <p id="durum">Veriler anlık yükleniyor...</p>
+        <button class="clear-btn" onclick="listeyiSifirla()">❌ TÜM LİSTEYİ TEMİZLE (YENİ VARDİYA)</button>
+        <p id="durum">Bağlantı bekleniyor...</p>
     </div>
 </div>
 
 <script>
-    // MUSTAFA: Buradaki databaseURL kısmını Firebase Realtime Database sayfasından kontrol et!
     const firebaseConfig = {
         apiKey: "AIzaSyCgQJ_r0c5yL_vvYscFS7SXv-JaofqjG2Y",
         authDomain: "personel-servis-a1afa.firebaseapp.com",
@@ -43,41 +51,65 @@
         storageBucket: "personel-servis-a1afa.firebasestorage.app",
         messagingSenderId: "316822744111",
         appId: "1:316822744111:web:c4efe6a7c86cb06ffe6ada",
-        databaseURL: "https://personel-servis-a1afa-default-rtdb.europe-west1.firebasedatabase.app" // Otomatik tahmin ettim, hata verirse kontrol edelim
+        databaseURL: "https://personel-servis-a1afa-default-rtdb.europe-west1.firebasedatabase.app"
     };
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // PERSONEL İSMİ KONTROLÜ
+    let kullaniciAdi = localStorage.getItem('servisKullaniciAdi');
+    if (!kullaniciAdi) {
+        kullaniciAdi = prompt("Lütfen adınızı ve soyadınızı yazın (Bir kez sorulacak):");
+        if (!kullaniciAdi) kullaniciAdi = "İsimsiz Personel";
+        localStorage.setItem('servisKullaniciAdi', kullaniciAdi);
+    }
+    document.getElementById('userInfo').innerText = "Hoş geldin, " + kullaniciAdi;
+
     const duraklar = ["Orduevi (Seka Cami)", "Halkevi", "Yenicuma", "Emniyet", "Real", "Kandıra Sapağı", "Kavakçılık", "Akademi", "Sembol", "Goodyear Sapağı", "Askeriye Sapağı", "Ustaeller", "Gazoz", "Diş Hastanesi", "Likarba", "Sarımeşe", "Tesis"];
     
     let bulutVerisi = {};
 
-    // Durakları oluştur ve Tıklama Dinle
+    // Durakları ekrana çiz
     const container = document.getElementById('durakContainer');
     duraklar.forEach((d, index) => {
         let btn = document.createElement('button');
         btn.className = 'durak-btn';
         btn.id = "btn-" + index;
-        btn.innerHTML = `<span class="no">${index + 1}</span> ${d}`;
+        btn.innerHTML = `
+            <span class="no">${index + 1}</span>
+            <span style="font-weight:bold">${d}</span>
+            <div id="bekleyen-${index}" class="bekleyenler"></div>
+        `;
         
         btn.onclick = function() {
-            // Firebase'e kaydet (Tıklanan durağı 1 yapıyoruz)
-            db.ref('aktifDuraklar/' + d).set(true);
-            alert(d + " bildirildi!");
+            // Eğer personel zaten bu durakta kayıtlıysa, kaydını sil (İptal Etme)
+            if (bulutVerisi[d] && bulutVerisi[d][kullaniciAdi]) {
+                db.ref('aktifDuraklar/' + d + '/' + kullaniciAdi).remove();
+            } else {
+                // Değilse kaydet
+                db.ref('aktifDuraklar/' + d + '/' + kullaniciAdi).set(true);
+            }
         };
         container.appendChild(btn);
     });
 
-    // VERİTABANINI ANLIK DİNLE (Şoför için)
+    // VERİTABANINI DİNLE
     db.ref('aktifDuraklar').on('value', (snapshot) => {
         bulutVerisi = snapshot.val() || {};
-        // Seçili olanları yeşil yap
+        document.getElementById('durum').innerText = "Sistem Aktif - Veriler Güncel";
+
         duraklar.forEach((d, i) => {
+            const bekleyenlerDiv = document.getElementById("bekleyen-" + i);
+            const buton = document.getElementById("btn-" + i);
+            
             if (bulutVerisi[d]) {
-                document.getElementById("btn-" + i).classList.add('secili');
+                const isimler = Object.keys(bulutVerisi[d]);
+                bekleyenlerDiv.innerText = isimler.join(", ");
+                buton.classList.add('secili');
             } else {
-                document.getElementById("btn-" + i).classList.remove('secili');
+                bekleyenlerDiv.innerText = "";
+                buton.classList.remove('secili');
             }
         });
     });
@@ -85,21 +117,29 @@
     function konus(metin) {
         const msg = new SpeechSynthesisUtterance(metin);
         msg.lang = 'tr-TR';
+        msg.rate = 0.9;
         window.speechSynthesis.speak(msg);
     }
 
     async function surusuBaslat() {
         for (let i = 0; i < duraklar.length; i++) {
             let d = duraklar[i];
-            document.getElementById('durum').innerText = "Kontrol: " + d;
+            document.getElementById('durum').innerText = "Geçilen: " + d;
+            
             if (bulutVerisi[d]) {
-                konus((i+1) + " numaralı " + d + " durağında personel var.");
-                await new Promise(r => setTimeout(r, 5000));
+                const isimler = Object.keys(bulutVerisi[d]);
+                konus((i+1) + " numaralı " + d + " durağında " + isimler.length + " kişi bekliyor: " + isimler.join(", "));
+                await new Promise(r => setTimeout(r, 6000));
             }
             await new Promise(r => setTimeout(r, 1000));
         }
-        konus("Servis tamamlandı.");
-        // Vardiyadan sonra verileri temizlemek istersen: db.ref('aktifDuraklar').remove();
+        konus("Servis rotası tamamlandı. Herkese iyi mesailer.");
+    }
+
+    function listeyiSifirla() {
+        if(confirm("DİKKAT! Tüm personelin seçimlerini sileceksiniz. Yeni vardiyaya mı geçiyorsunuz?")) {
+            db.ref('aktifDuraklar').remove();
+        }
     }
 </script>
 </body>
