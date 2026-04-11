@@ -2,76 +2,51 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>İzmit-Tepetarla Akıllı Servis</title>
+    <title>İzmit-Tepetarla Akıllı Servis (Tam Liste)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
         :root { --primary: #1a73e8; --success: #2ecc71; --dark: #2c3e50; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #eef2f7; margin: 0; padding: 15px; display: flex; justify-content: center; }
-        .panel { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); border: 1px solid #ddd; }
-        
-        h2 { text-align: center; color: var(--primary); margin-bottom: 20px; font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
-        
-        /* Canlı Takip Kartı */
-        .live-tracker { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; padding: 20px; border-radius: 20px; margin-bottom: 25px; text-align: center; box-shadow: 0 4px 15px rgba(26, 115, 232, 0.4); }
-        .tracker-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
-        #aracKonumuText { font-size: 20px; font-weight: bold; margin-top: 8px; }
-
-        /* Durak Tasarımı */
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .panel { background: white; width: 100%; max-width: 500px; padding: 25px; border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: var(--primary); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .live-tracker { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; padding: 20px; border-radius: 20px; margin-bottom: 25px; text-align: center; }
+        #aracKonumuText { font-size: 19px; font-weight: bold; margin-top: 5px; }
         .durak-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .durak-btn { 
             padding: 15px 10px; border: 2px solid #edf2f7; border-radius: 18px; background: #fff; 
-            cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative; overflow: hidden;
+            cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.2s;
         }
-        .durak-btn:hover { border-color: var(--primary); transform: translateY(-3px); }
-        
-        /* Numara Yuvarlağı (Kiralama ücreti ödendi!) */
         .no { 
-            background: var(--primary); color: white; width: 28px; height: 28px; 
+            background: var(--primary); color: white; width: 26px; height: 26px; 
             border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-            margin-bottom: 8px; font-weight: bold; font-size: 13px; box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            margin-bottom: 8px; font-weight: bold; font-size: 12px;
         }
-        
-        .secili { background: var(--success) !important; color: white; border-color: #27ae60; box-shadow: 0 6px 12px rgba(46, 204, 113, 0.3); }
+        .secili { background: var(--success) !important; color: white; border-color: #27ae60; }
         .secili .no { background: white; color: var(--success); }
-        .bekleyen-isimler { font-size: 11px; margin-top: 8px; font-weight: 600; color: #555; text-align: center; width: 100%; }
+        .bekleyen-isimler { font-size: 11px; margin-top: 5px; font-weight: 600; color: #555; text-align: center; }
         .secili .bekleyen-isimler { color: #fff; }
-
-        /* Kaptan Paneli */
         .driver-zone { display: none; margin-top: 35px; background: var(--dark); color: white; padding: 25px; border-radius: 25px; text-align: center; }
-        .play-btn { 
-            background: #f4b400; color: #000; border: none; padding: 18px; border-radius: 15px; 
-            font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; box-shadow: 0 4px 10px rgba(244, 180, 0, 0.4);
-        }
-        .clear-btn { background: #e74c3c; color: white; border: none; padding: 12px; border-radius: 10px; margin-top: 15px; width: 100%; cursor: pointer; font-weight: bold; }
-        
-        #userInfo { font-size: 12px; text-align: center; margin-bottom: 15px; color: #777; font-style: italic; }
+        .play-btn { background: #f4b400; color: #000; border: none; padding: 18px; border-radius: 15px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; }
+        #userInfo { font-size: 12px; text-align: center; margin-bottom: 15px; color: #777; }
     </style>
 </head>
 <body>
 
 <div class="panel">
-    <h2 onclick="kaptanKilidiniAc()"><span>🚌</span> İzmit Servis Takip</h2>
-    
+    <h2 onclick="kaptanKilidiniAc()">🚌 İzmit Servis Takip</h2>
     <div id="userInfo"></div>
-
     <div class="live-tracker">
-        <div class="tracker-label">📍 Servis Güncel Konum</div>
+        <div style="font-size:11px; opacity:0.8; letter-spacing:1px;">📍 SERVİS ŞU AN BURADA</div>
         <div id="aracKonumuText">Bağlantı Kuruluyor...</div>
     </div>
-
     <div class="durak-grid" id="durakContainer"></div>
-
     <div id="kaptanPanel" class="driver-zone">
-        <h3 style="margin-top:0">👨‍✈️ Kaptan Özel Kontrol</h3>
+        <h3 style="margin-top:0">👨‍✈️ Kaptan Paneli</h3>
         <button id="startBtn" class="play-btn" onclick="gpsTakibiBaslat()">🛰️ GPS TAKİBİNİ BAŞLAT</button>
-        <div id="gpsBilgi" style="font-size:11px; margin-top:10px; color:#bdc3c7;">Uydu bağlantısı bekleniyor...</div>
-        <button class="clear-btn" onclick="listeyiSifirla()">🧹 VARDİYA SONU TEMİZLİĞİ</button>
+        <button style="background:#e74c3c; color:white; border:none; padding:10px; margin-top:15px; border-radius:8px; width:100%; cursor:pointer;" onclick="listeyiSifirla()">🧹 LİSTEYİ TEMİZLE</button>
     </div>
-    
-    <p style="text-align:center; font-size:11px; color:#bbb; margin-top:30px; letter-spacing:1px;">MUSTAFA ÖZDEN • İZMİT 2026</p>
 </div>
 
 <script>
@@ -84,22 +59,15 @@
         appId: "1:316822744111:web:c4efe6a7c86cb06ffe6ada",
         databaseURL: "https://personel-servis-a1afa-default-rtdb.europe-west1.firebasedatabase.app"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // KAPTAN KİLİDİ
     let tik = 0;
     function kaptanKilidiniAc() {
-        tik++;
-        if (tik === 3) {
-            if (prompt("Kaptan giriş şifresi:") === "4141") {
-                document.getElementById('kaptanPanel').style.display = 'block';
-                document.getElementById('kaptanPanel').scrollIntoView({behavior: 'smooth'});
-            } else { tik = 0; }
-        }
+        tik++; if (tik === 3) { if (prompt("Şifre:") === "4141") document.getElementById('kaptanPanel').style.display='block'; else tik=0; }
     }
 
+    // İŞTE EKSİKSİZ 17 DURAKLI LİSTE
     const duraklar = [
         { ad: "Orduevi", lat: 40.7630, lon: 29.9140 },
         { ad: "Halkevi", lat: 40.7621, lon: 29.9288 },
@@ -111,103 +79,70 @@
         { ad: "Akademi", lat: 40.7680, lon: 29.9920 },
         { ad: "Sembol", lat: 40.7690, lon: 30.0050 },
         { ad: "Goodyear Sapağı", lat: 40.7705, lon: 30.0150 },
+        { ad: "Askeriye Sapağı", lat: 40.7712, lon: 30.0220 },
         { ad: "Ustaeller", lat: 40.7720, lon: 30.0300 },
         { ad: "Gazoz", lat: 40.7730, lon: 30.0350 },
+        { ad: "Diş Hastanesi", lat: 40.7740, lon: 30.0400 },
+        { ad: "Likarba", lat: 40.7745, lon: 30.0450 },
+        { ad: "Sarımeşe", lat: 40.7748, lon: 30.0480 },
         { ad: "Tesis", lat: 40.7750, lon: 30.0500 }
     ];
 
-    let kullaniciAdi = localStorage.getItem('servisKullaniciAdi');
-    if (!kullaniciAdi) {
-        kullaniciAdi = prompt("Durak seçmek için Adınızı ve Soyadınızı girin:");
-        if (kullaniciAdi) localStorage.setItem('servisKullaniciAdi', kullaniciAdi);
-        else kullaniciAdi = "Misafir Yolcu";
-    }
+    let kullaniciAdi = localStorage.getItem('servisKullaniciAdi') || prompt("Ad Soyad:");
+    localStorage.setItem('servisKullaniciAdi', kullaniciAdi);
     document.getElementById('userInfo').innerText = "👤 " + kullaniciAdi;
 
     let bulutVerisi = {};
     const container = document.getElementById('durakContainer');
-
     duraklar.forEach((d, i) => {
         let btn = document.createElement('button');
-        btn.className = 'durak-btn';
-        btn.id = "btn-" + i;
-        btn.innerHTML = `
-            <div class="no">${i+1}</div>
-            <div style="font-weight:bold; font-size:14px;">${d.ad}</div>
-            <div id="isimler-${i}" class="bekleyen-isimler"></div>
-        `;
+        btn.className = 'durak-btn'; btn.id = "btn-" + i;
+        btn.innerHTML = `<div class="no">${i+1}</div><div style="font-weight:bold">${d.ad}</div><div id="isimler-${i}" class="bekleyen-isimler"></div>`;
         btn.onclick = () => {
-            if (bulutVerisi[d.ad] && bulutVerisi[d.ad][kullaniciAdi]) {
-                db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).remove();
-            } else {
-                db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).set(true);
-            }
+            if (bulutVerisi[d.ad] && bulutVerisi[d.ad][kullaniciAdi]) db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).remove();
+            else db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).set(true);
         };
         container.appendChild(btn);
     });
 
     db.ref().on('value', snap => {
-        const data = snap.val() || {};
-        bulutVerisi = data.aktifDuraklar || {};
+        const data = snap.val() || {}; bulutVerisi = data.aktifDuraklar || {};
         duraklar.forEach((d, i) => {
-            const btn = document.getElementById("btn-"+i);
-            const isimDiv = document.getElementById("isimler-"+i);
-            if (bulutVerisi[d.ad]) {
-                btn.classList.add('secili');
-                isimDiv.innerText = Object.keys(bulutVerisi[d.ad]).join(", ");
-            } else {
-                btn.classList.remove('secili');
-                isimDiv.innerText = "";
-            }
+            const btn = document.getElementById("btn-"+i); const isimDiv = document.getElementById("isimler-"+i);
+            if (bulutVerisi[d.ad]) { btn.classList.add('secili'); isimDiv.innerText = Object.keys(bulutVerisi[d.ad]).join(", "); }
+            else { btn.classList.remove('secili'); isimDiv.innerText = ""; }
         });
-        document.getElementById('aracKonumuText').innerText = data.aracKonumu ? data.aracKonumu.nerede : "Henüz yola çıkılmadı";
+        document.getElementById('aracKonumuText').innerText = data.aracKonumu ? data.aracKonumu.nerede : "Servis beklemede";
     });
 
-    function konus(metin) {
-        const msg = new SpeechSynthesisUtterance(metin);
-        msg.lang = 'tr-TR';
-        window.speechSynthesis.speak(msg);
-    }
+    function konus(metin) { const msg = new SpeechSynthesisUtterance(metin); msg.lang = 'tr-TR'; window.speechSynthesis.speak(msg); }
 
     let anonsKumesi = new Set();
     function gpsTakibiBaslat() {
-        if (!navigator.geolocation) return alert("Hata: GPS bulunamadı.");
-        document.getElementById('startBtn').innerText = "🛰️ TAKİP AKTİF";
-        document.getElementById('startBtn').style.background = "#2ecc71";
-        
+        if (!navigator.geolocation) return;
+        document.getElementById('startBtn').innerText = "🛰️ TAKİP AKTİF"; document.getElementById('startBtn').style.background = "#2ecc71";
         navigator.geolocation.watchPosition(pos => {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            let yakinDurak = "Yolda...";
-            let yakinlik = 999;
-
+            const lat = pos.coords.latitude; const lon = pos.coords.longitude;
+            let yakinDurak = "Yolda..."; let yakinlik = 999;
             duraklar.forEach(durak => {
-                const mesafe = calculateDistance(lat, lon, durak.lat, durak.lon);
-                if (mesafe < yakinlik) { yakinlik = mesafe; yakinDurak = durak.ad + " yakınlarında"; }
-                
-                if (mesafe < 0.25 && !anonsKumesi.has(durak.ad)) {
-                    if (bulutVerisi[durak.ad]) {
-                        konus(`${durak.ad} durağına geldiniz. Bekleyenler var.`);
-                    }
+                const m = calculateDistance(lat, lon, durak.lat, durak.lon);
+                if (m < yakinlik) { yakinlik = m; yakinDurak = durak.ad + " yakınlarında"; }
+                if (m < 0.25 && !anonsKumesi.has(durak.ad)) {
+                    if (bulutVerisi[durak.ad]) konus(`${durak.ad} durağına geldiniz.`);
                     anonsKumesi.add(durak.ad);
                 }
             });
             db.ref('aracKonumu').set({ nerede: yakinDurak });
-            document.getElementById('gpsBilgi').innerText = "Konum güncellendi: " + new Date().toLocaleTimeString();
         }, null, { enableHighAccuracy: true });
     }
 
     function calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371;
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    function listeyiSifirla() {
-        if(confirm("Tüm listeyi temizle?")) { db.ref().remove(); location.reload(); }
-    }
+    function listeyiSifirla() { if(confirm("Listeyi temizle?")) { db.ref().remove(); location.reload(); } }
 </script>
 </body>
 </html>
