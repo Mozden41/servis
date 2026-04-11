@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>İzmit-Tepetarla Akıllı Servis (Tam Liste)</title>
+    <title>İzmit-Tepetarla Akıllı Servis (Kayıtlı)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
@@ -28,8 +28,7 @@
         .bekleyen-isimler { font-size: 11px; margin-top: 5px; font-weight: 600; color: #555; text-align: center; }
         .secili .bekleyen-isimler { color: #fff; }
         .driver-zone { display: none; margin-top: 35px; background: var(--dark); color: white; padding: 25px; border-radius: 25px; text-align: center; }
-        .play-btn { background: #f4b400; color: #000; border: none; padding: 18px; border-radius: 15px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; }
-        #userInfo { font-size: 12px; text-align: center; margin-bottom: 15px; color: #777; }
+        #userInfo { font-size: 12px; text-align: center; margin-bottom: 15px; color: #777; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -38,13 +37,13 @@
     <h2 onclick="kaptanKilidiniAc()">🚌 İzmit Servis Takip</h2>
     <div id="userInfo"></div>
     <div class="live-tracker">
-        <div style="font-size:11px; opacity:0.8; letter-spacing:1px;">📍 SERVİS ŞU AN BURADA</div>
+        <div style="font-size:11px; opacity:0.8;">📍 SERVİS ŞU AN BURADA</div>
         <div id="aracKonumuText">Bağlantı Kuruluyor...</div>
     </div>
     <div class="durak-grid" id="durakContainer"></div>
     <div id="kaptanPanel" class="driver-zone">
         <h3 style="margin-top:0">👨‍✈️ Kaptan Paneli</h3>
-        <button id="startBtn" class="play-btn" onclick="gpsTakibiBaslat()">🛰️ GPS TAKİBİNİ BAŞLAT</button>
+        <button id="startBtn" style="background:#f4b400; color:#000; border:none; padding:18px; border-radius:15px; font-size:18px; font-weight:bold; cursor:pointer; width:100%;" onclick="gpsTakibiBaslat()">🛰️ GPS TAKİBİNİ BAŞLAT</button>
         <button style="background:#e74c3c; color:white; border:none; padding:10px; margin-top:15px; border-radius:8px; width:100%; cursor:pointer;" onclick="listeyiSifirla()">🧹 LİSTEYİ TEMİZLE</button>
     </div>
 </div>
@@ -62,35 +61,46 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
+    // KAPTAN GİRİŞİ
     let tik = 0;
     function kaptanKilidiniAc() {
         tik++; if (tik === 3) { if (prompt("Şifre:") === "4141") document.getElementById('kaptanPanel').style.display='block'; else tik=0; }
     }
 
-    // İŞTE EKSİKSİZ 17 DURAKLI LİSTE
+    // İSİM KONTROLÜ (ZORUNLU)
+    function isimSor() {
+        let isim = prompt("Lütfen Adınızı ve Soyadınızı yazın:");
+        if (isim && isim.trim().length > 2) {
+            localStorage.setItem('servisKullaniciAdi', isim.trim());
+            return isim.trim();
+        }
+        return null;
+    }
+
+    let kullaniciAdi = localStorage.getItem('servisKullaniciAdi');
+    if (!kullaniciAdi) {
+        kullaniciAdi = isimSor();
+    }
+    
+    function kullaniciGuncelle() {
+        if (!kullaniciAdi || kullaniciAdi === "null" || kullaniciAdi === "") {
+            kullaniciAdi = isimSor();
+        }
+        document.getElementById('userInfo').innerText = kullaniciAdi ? "👤 " + kullaniciAdi : "⚠️ Lütfen isim giriniz!";
+    }
+    kullaniciGuncelle();
+
     const duraklar = [
-        { ad: "Orduevi", lat: 40.7630, lon: 29.9140 },
-        { ad: "Halkevi", lat: 40.7621, lon: 29.9288 },
-        { ad: "Yenicuma", lat: 40.7635, lon: 29.9375 },
-        { ad: "Emniyet", lat: 40.7645, lon: 29.9450 },
-        { ad: "Real", lat: 40.7655, lon: 29.9550 },
-        { ad: "Kandıra Sapağı", lat: 40.7660, lon: 29.9680 },
-        { ad: "Kavakçılık", lat: 40.7670, lon: 29.9800 },
-        { ad: "Akademi", lat: 40.7680, lon: 29.9920 },
-        { ad: "Sembol", lat: 40.7690, lon: 30.0050 },
-        { ad: "Goodyear Sapağı", lat: 40.7705, lon: 30.0150 },
-        { ad: "Askeriye Sapağı", lat: 40.7712, lon: 30.0220 },
-        { ad: "Ustaeller", lat: 40.7720, lon: 30.0300 },
-        { ad: "Gazoz", lat: 40.7730, lon: 30.0350 },
-        { ad: "Diş Hastanesi", lat: 40.7740, lon: 30.0400 },
-        { ad: "Likarba", lat: 40.7745, lon: 30.0450 },
-        { ad: "Sarımeşe", lat: 40.7748, lon: 30.0480 },
+        { ad: "Orduevi", lat: 40.7630, lon: 29.9140 }, { ad: "Halkevi", lat: 40.7621, lon: 29.9288 },
+        { ad: "Yenicuma", lat: 40.7635, lon: 29.9375 }, { ad: "Emniyet", lat: 40.7645, lon: 29.9450 },
+        { ad: "Real", lat: 40.7655, lon: 29.9550 }, { ad: "Kandıra Sapağı", lat: 40.7660, lon: 29.9680 },
+        { ad: "Kavakçılık", lat: 40.7670, lon: 29.9800 }, { ad: "Akademi", lat: 40.7680, lon: 29.9920 },
+        { ad: "Sembol", lat: 40.7690, lon: 30.0050 }, { ad: "Goodyear Sapağı", lat: 40.7705, lon: 30.0150 },
+        { ad: "Askeriye Sapağı", lat: 40.7712, lon: 30.0220 }, { ad: "Ustaeller", lat: 40.7720, lon: 30.0300 },
+        { ad: "Gazoz", lat: 40.7730, lon: 30.0350 }, { ad: "Diş Hastanesi", lat: 40.7740, lon: 30.0400 },
+        { ad: "Likarba", lat: 40.7745, lon: 30.0450 }, { ad: "Sarımeşe", lat: 40.7748, lon: 30.0480 },
         { ad: "Tesis", lat: 40.7750, lon: 30.0500 }
     ];
-
-    let kullaniciAdi = localStorage.getItem('servisKullaniciAdi') || prompt("Ad Soyad:");
-    localStorage.setItem('servisKullaniciAdi', kullaniciAdi);
-    document.getElementById('userInfo').innerText = "👤 " + kullaniciAdi;
 
     let bulutVerisi = {};
     const container = document.getElementById('durakContainer');
@@ -99,6 +109,11 @@
         btn.className = 'durak-btn'; btn.id = "btn-" + i;
         btn.innerHTML = `<div class="no">${i+1}</div><div style="font-weight:bold">${d.ad}</div><div id="isimler-${i}" class="bekleyen-isimler"></div>`;
         btn.onclick = () => {
+            kullaniciGuncelle(); // Butona basınca ismi tekrar kontrol et
+            if (!kullaniciAdi) {
+                alert("İsim yazmadan durak seçemezsiniz!");
+                return;
+            }
             if (bulutVerisi[d.ad] && bulutVerisi[d.ad][kullaniciAdi]) db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).remove();
             else db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).set(true);
         };
@@ -116,11 +131,10 @@
     });
 
     function konus(metin) { const msg = new SpeechSynthesisUtterance(metin); msg.lang = 'tr-TR'; window.speechSynthesis.speak(msg); }
-
     let anonsKumesi = new Set();
     function gpsTakibiBaslat() {
         if (!navigator.geolocation) return;
-        document.getElementById('startBtn').innerText = "🛰️ TAKİP AKTİF"; document.getElementById('startBtn').style.background = "#2ecc71";
+        document.getElementById('startBtn').innerText = "🛰️ TAKİP AKTİF";
         navigator.geolocation.watchPosition(pos => {
             const lat = pos.coords.latitude; const lon = pos.coords.longitude;
             let yakinDurak = "Yolda..."; let yakinlik = 999;
@@ -128,20 +142,18 @@
                 const m = calculateDistance(lat, lon, durak.lat, durak.lon);
                 if (m < yakinlik) { yakinlik = m; yakinDurak = durak.ad + " yakınlarında"; }
                 if (m < 0.25 && !anonsKumesi.has(durak.ad)) {
-                    if (bulutVerisi[durak.ad]) konus(`${durak.ad} durağına geldiniz.`);
+                    if (bulutVerisi[durak.ad]) konus(`${durak.ad} durağında bekleyenler var.`);
                     anonsKumesi.add(durak.ad);
                 }
             });
             db.ref('aracKonumu').set({ nerede: yakinDurak });
         }, null, { enableHighAccuracy: true });
     }
-
     function calculateDistance(lat1, lon1, lat2, lon2) {
         const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
-
     function listeyiSifirla() { if(confirm("Listeyi temizle?")) { db.ref().remove(); location.reload(); } }
 </script>
 </body>
