@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>İzmit - Tepetarla Canlı Servis</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 10px; }
+        .panel { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .durak-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .durak-btn { 
+            padding: 20px 10px; border: 2px solid #ddd; border-radius: 12px; background: white;
+            cursor: pointer; font-size: 16px; display: flex; align-items: center; 
+        }
+        .no { background: #1a73e8; color: white; width: 25px; height: 25px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: bold; }
+        .secili { background: #2ecc71 !important; color: white; border-color: #27ae60; }
+        .driver-zone { margin-top: 30px; background: #202124; color: white; padding: 20px; border-radius: 15px; text-align: center; }
+        .play-btn { background: #f4b400; color: #000; border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2 style="text-align:center; color:#1a73e8;">🚌 Servis Bildir</h2>
+    <div class="durak-grid" id="durakContainer"></div>
+
+    <div class="driver-zone">
+        <h3>👨‍✈️ Şoför Paneli</h3>
+        <button class="play-btn" onclick="surusuBaslat()">SÜRÜŞÜ BAŞLAT 🔊</button>
+        <p id="durum">Veriler anlık yükleniyor...</p>
+    </div>
+</div>
+
+<script>
+    // MUSTAFA: Buradaki databaseURL kısmını Firebase Realtime Database sayfasından kontrol et!
+    const firebaseConfig = {
+        apiKey: "AIzaSyCgQJ_r0c5yL_vvYscFS7SXv-JaofqjG2Y",
+        authDomain: "personel-servis-a1afa.firebaseapp.com",
+        projectId: "personel-servis-a1afa",
+        storageBucket: "personel-servis-a1afa.firebasestorage.app",
+        messagingSenderId: "316822744111",
+        appId: "1:316822744111:web:c4efe6a7c86cb06ffe6ada",
+        databaseURL: "https://personel-servis-a1afa-default-rtdb.europe-west1.firebasedatabase.app" // Otomatik tahmin ettim, hata verirse kontrol edelim
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const duraklar = ["Orduevi (Seka Cami)", "Halkevi", "Yenicuma", "Emniyet", "Real", "Kandıra Sapağı", "Kavakçılık", "Akademi", "Sembol", "Goodyear Sapağı", "Askeriye Sapağı", "Ustaeller", "Gazoz", "Diş Hastanesi", "Likarba", "Sarımeşe", "Tesis"];
+    
+    let bulutVerisi = {};
+
+    // Durakları oluştur ve Tıklama Dinle
+    const container = document.getElementById('durakContainer');
+    duraklar.forEach((d, index) => {
+        let btn = document.createElement('button');
+        btn.className = 'durak-btn';
+        btn.id = "btn-" + index;
+        btn.innerHTML = `<span class="no">${index + 1}</span> ${d}`;
+        
+        btn.onclick = function() {
+            // Firebase'e kaydet (Tıklanan durağı 1 yapıyoruz)
+            db.ref('aktifDuraklar/' + d).set(true);
+            alert(d + " bildirildi!");
+        };
+        container.appendChild(btn);
+    });
+
+    // VERİTABANINI ANLIK DİNLE (Şoför için)
+    db.ref('aktifDuraklar').on('value', (snapshot) => {
+        bulutVerisi = snapshot.val() || {};
+        // Seçili olanları yeşil yap
+        duraklar.forEach((d, i) => {
+            if (bulutVerisi[d]) {
+                document.getElementById("btn-" + i).classList.add('secili');
+            } else {
+                document.getElementById("btn-" + i).classList.remove('secili');
+            }
+        });
+    });
+
+    function konus(metin) {
+        const msg = new SpeechSynthesisUtterance(metin);
+        msg.lang = 'tr-TR';
+        window.speechSynthesis.speak(msg);
+    }
+
+    async function surusuBaslat() {
+        for (let i = 0; i < duraklar.length; i++) {
+            let d = duraklar[i];
+            document.getElementById('durum').innerText = "Kontrol: " + d;
+            if (bulutVerisi[d]) {
+                konus((i+1) + " numaralı " + d + " durağında personel var.");
+                await new Promise(r => setTimeout(r, 5000));
+            }
+            await new Promise(r => setTimeout(r, 1000));
+        }
+        konus("Servis tamamlandı.");
+        // Vardiyadan sonra verileri temizlemek istersen: db.ref('aktifDuraklar').remove();
+    }
+</script>
+</body>
+</html>
