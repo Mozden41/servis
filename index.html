@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>İzmit-Tepetarla Akıllı Servis (Kayıtlı)</title>
+    <title>İzmit-Tepetarla Servis (Null Engelli)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
@@ -18,33 +18,29 @@
             padding: 15px 10px; border: 2px solid #edf2f7; border-radius: 18px; background: #fff; 
             cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.2s;
         }
-        .no { 
-            background: var(--primary); color: white; width: 26px; height: 26px; 
-            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
-            margin-bottom: 8px; font-weight: bold; font-size: 12px;
-        }
+        .no { background: var(--primary); color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; font-weight: bold; font-size: 12px; }
         .secili { background: var(--success) !important; color: white; border-color: #27ae60; }
         .secili .no { background: white; color: var(--success); }
         .bekleyen-isimler { font-size: 11px; margin-top: 5px; font-weight: 600; color: #555; text-align: center; }
         .secili .bekleyen-isimler { color: #fff; }
         .driver-zone { display: none; margin-top: 35px; background: var(--dark); color: white; padding: 25px; border-radius: 25px; text-align: center; }
-        #userInfo { font-size: 12px; text-align: center; margin-bottom: 15px; color: #777; font-weight: bold; }
+        #userInfo { font-size: 12px; text-align: center; margin-bottom: 15px; color: #d32f2f; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="panel">
-    <h2 onclick="kaptanKilidiniAc()">🚌 İzmit Servis Takip</h2>
+    <h2 onclick="kaptanKilidiniAc()">🚌 Servis Takip</h2>
     <div id="userInfo"></div>
     <div class="live-tracker">
-        <div style="font-size:11px; opacity:0.8;">📍 SERVİS ŞU AN BURADA</div>
-        <div id="aracKonumuText">Bağlantı Kuruluyor...</div>
+        <div style="font-size:11px; opacity:0.8;">📍 ARAÇ KONUMU</div>
+        <div id="aracKonumuText">Bekleniyor...</div>
     </div>
     <div class="durak-grid" id="durakContainer"></div>
     <div id="kaptanPanel" class="driver-zone">
-        <h3 style="margin-top:0">👨‍✈️ Kaptan Paneli</h3>
-        <button id="startBtn" style="background:#f4b400; color:#000; border:none; padding:18px; border-radius:15px; font-size:18px; font-weight:bold; cursor:pointer; width:100%;" onclick="gpsTakibiBaslat()">🛰️ GPS TAKİBİNİ BAŞLAT</button>
-        <button style="background:#e74c3c; color:white; border:none; padding:10px; margin-top:15px; border-radius:8px; width:100%; cursor:pointer;" onclick="listeyiSifirla()">🧹 LİSTEYİ TEMİZLE</button>
+        <h3>👨‍✈️ Şoför Kontrol</h3>
+        <button id="startBtn" style="background:#f4b400; color:#000; border:none; padding:18px; border-radius:15px; font-size:18px; font-weight:bold; cursor:pointer; width:100%;" onclick="gpsTakibiBaslat()">🛰️ GPS BAŞLAT</button>
+        <button style="background:#e74c3c; color:white; border:none; padding:10px; margin-top:15px; border-radius:8px; width:100%; cursor:pointer;" onclick="listeyiSifirla()">🧹 LİSTEYİ SIFIRLA</button>
     </div>
 </div>
 
@@ -61,34 +57,40 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // KAPTAN GİRİŞİ
     let tik = 0;
     function kaptanKilidiniAc() {
         tik++; if (tik === 3) { if (prompt("Şifre:") === "4141") document.getElementById('kaptanPanel').style.display='block'; else tik=0; }
     }
 
-    // İSİM KONTROLÜ (ZORUNLU)
+    // İSİM KONTROLÜ (NULL VE BOŞLUK ENGELLEME)
     function isimSor() {
-        let isim = prompt("Lütfen Adınızı ve Soyadınızı yazın:");
-        if (isim && isim.trim().length > 2) {
-            localStorage.setItem('servisKullaniciAdi', isim.trim());
-            return isim.trim();
+        let isim = prompt("Lütfen Adınızı ve Soyadınızı girin:");
+        if (isim === null || isim.trim() === "" || isim === "null") {
+            return null;
         }
-        return null;
+        localStorage.setItem('servisKullaniciAdi', isim.trim());
+        return isim.trim();
     }
 
     let kullaniciAdi = localStorage.getItem('servisKullaniciAdi');
-    if (!kullaniciAdi) {
-        kullaniciAdi = isimSor();
-    }
     
-    function kullaniciGuncelle() {
-        if (!kullaniciAdi || kullaniciAdi === "null" || kullaniciAdi === "") {
-            kullaniciAdi = isimSor();
-        }
-        document.getElementById('userInfo').innerText = kullaniciAdi ? "👤 " + kullaniciAdi : "⚠️ Lütfen isim giriniz!";
+    // Eğer hafızadaki isim "null" ise temizle
+    if (kullaniciAdi === "null" || kullaniciAdi === "") {
+        kullaniciAdi = null;
+        localStorage.removeItem('servisKullaniciAdi');
     }
-    kullaniciGuncelle();
+
+    function ekranGuncelle() {
+        const uInfo = document.getElementById('userInfo');
+        if (!kullaniciAdi) {
+            uInfo.innerText = "⚠️ Durak seçmek için isim girmelisiniz!";
+            uInfo.style.color = "#d32f2f";
+        } else {
+            uInfo.innerText = "👤 Hoş geldin, " + kullaniciAdi;
+            uInfo.style.color = "#2ecc71";
+        }
+    }
+    ekranGuncelle();
 
     const duraklar = [
         { ad: "Orduevi", lat: 40.7630, lon: 29.9140 }, { ad: "Halkevi", lat: 40.7621, lon: 29.9288 },
@@ -109,13 +111,17 @@
         btn.className = 'durak-btn'; btn.id = "btn-" + i;
         btn.innerHTML = `<div class="no">${i+1}</div><div style="font-weight:bold">${d.ad}</div><div id="isimler-${i}" class="bekleyen-isimler"></div>`;
         btn.onclick = () => {
-            kullaniciGuncelle(); // Butona basınca ismi tekrar kontrol et
             if (!kullaniciAdi) {
-                alert("İsim yazmadan durak seçemezsiniz!");
-                return;
+                kullaniciAdi = isimSor();
+                ekranGuncelle();
+                if (!kullaniciAdi) return; // Hala yazmadıysa işlem yapma
             }
-            if (bulutVerisi[d.ad] && bulutVerisi[d.ad][kullaniciAdi]) db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).remove();
-            else db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).set(true);
+            // Çift tıklama iptal kontrolü
+            if (bulutVerisi[d.ad] && bulutVerisi[d.ad][kullaniciAdi]) {
+                db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).remove();
+            } else {
+                db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).set(true);
+            }
         };
         container.appendChild(btn);
     });
@@ -124,10 +130,18 @@
         const data = snap.val() || {}; bulutVerisi = data.aktifDuraklar || {};
         duraklar.forEach((d, i) => {
             const btn = document.getElementById("btn-"+i); const isimDiv = document.getElementById("isimler-"+i);
-            if (bulutVerisi[d.ad]) { btn.classList.add('secili'); isimDiv.innerText = Object.keys(bulutVerisi[d.ad]).join(", "); }
-            else { btn.classList.remove('secili'); isimDiv.innerText = ""; }
+            if (bulutVerisi[d.ad]) {
+                btn.classList.add('secili');
+                // NULL filtreleme: İçinde "null" geçen veya boş olan isimleri gösterme
+                const temizListe = Object.keys(bulutVerisi[d.ad]).filter(isim => isim !== "null" && isim !== "" && isim !== "undefined");
+                isimDiv.innerText = temizListe.join(", ");
+                if (temizListe.length === 0) btn.classList.remove('secili'); // Sadece null varsa butonu söndür
+            } else {
+                btn.classList.remove('secili');
+                isimDiv.innerText = "";
+            }
         });
-        document.getElementById('aracKonumuText').innerText = data.aracKonumu ? data.aracKonumu.nerede : "Servis beklemede";
+        document.getElementById('aracKonumuText').innerText = data.aracKonumu ? data.aracKonumu.nerede : "Beklemede";
     });
 
     function konus(metin) { const msg = new SpeechSynthesisUtterance(metin); msg.lang = 'tr-TR'; window.speechSynthesis.speak(msg); }
