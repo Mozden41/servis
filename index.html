@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>İzmit - Tepetarla Akıllı Servis (Numaralı)</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; display: flex; justify-content: center; padding: 20px; }
+        .panel { background: white; width: 500px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; text-align: center; border-bottom: 3px solid #1a73e8; padding-bottom: 10px; margin-bottom: 20px; }
+        
+        /* Personel Bölümü */
+        .durak-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .durak-btn { 
+            padding: 20px 10px; border: 2px solid #dfe1e5; border-radius: 12px; background: #fff;
+            cursor: pointer; font-size: 16px; transition: 0.3s; display: flex; align-items: center; justify-content: flex-start;
+        }
+        /* Numara Yuvarlağı */
+        .no { 
+            background: #1a73e8; color: white; width: 30px; height: 30px; 
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+            margin-right: 10px; font-weight: bold; flex-shrink: 0;
+        }
+        .durak-btn:hover { border-color: #1a73e8; background: #f8f9fa; }
+        .secili { background: #2ecc71 !important; color: white; border-color: #27ae60; transform: scale(1.02); }
+        .secili .no { background: white; color: #2ecc71; }
+
+        /* Şoför Bölümü */
+        .driver-zone { margin-top: 40px; background: #202124; color: white; padding: 25px; border-radius: 15px; text-align: center; }
+        .play-btn { 
+            background: #f4b400; color: #000; border: none; padding: 18px; 
+            border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 15px;
+        }
+        #durum { font-size: 14px; color: #9aa0a6; }
+    </style>
+</head>
+<body>
+
+<div class="panel">
+    <h2>🚶 Durak Seçimi</h2>
+    <div class="durak-grid" id="durakContainer"></div>
+
+    <div class="driver-zone">
+        <h2>👨‍✈️ Şoför Paneli</h2>
+        <button class="play-btn" onclick="surusuBaslat()">SÜRÜŞÜ BAŞLAT 🔊</button>
+        <div id="durum">Direksiyon başına geçince başlatın.</div>
+    </div>
+</div>
+
+<script>
+    const duraklar = ["Orduevi (Seka Cami)", "Halkevi", "Yenicuma", "Emniyet", "Real", "Kandıra Sapağı", "Kavakçılık", "Akademi", "Sembol", "Goodyear Sapağı", "Askeriye Sapağı", "Ustaeller", "Gazoz", "Diş Hastanesi", "Likarba", "Sarımeşe", "Tesis"];
+    
+    let aktifBekleyenler = [];
+
+    const container = document.getElementById('durakContainer');
+    duraklar.forEach((d, index) => {
+        let btn = document.createElement('button');
+        btn.className = 'durak-btn';
+        // Başına numara ekliyoruz (index 0'dan başladığı için +1 diyoruz)
+        btn.innerHTML = `<span class="no">${index + 1}</span> ${d}`;
+        
+        btn.onclick = function() {
+            this.classList.toggle('secili');
+            if(this.classList.contains('secili')) {
+                aktifBekleyenler.push(d);
+            } else {
+                aktifBekleyenler = aktifBekleyenler.filter(item => item !== d);
+            }
+        };
+        container.appendChild(btn);
+    });
+
+    function konus(metin) {
+        const msg = new SpeechSynthesisUtterance(metin);
+        msg.lang = 'tr-TR';
+        msg.rate = 0.85;
+        window.speechSynthesis.speak(msg);
+    }
+
+    async function surusuBaslat() {
+        const durumEl = document.getElementById('durum');
+        if (aktifBekleyenler.length === 0) {
+            konus("Şu an bekleyen personel görünmüyor kaptan.");
+            return;
+        }
+        
+        for (let i = 0; i < duraklar.length; i++) {
+            let d = duraklar[i];
+            durumEl.innerText = "Şu an: " + (i+1) + " numara - " + d;
+            
+            if (aktifBekleyenler.includes(d)) {
+                konus((i+1) + " numaralı " + d + " durağında bekleyen var.");
+                await new Promise(r => setTimeout(r, 5000));
+            }
+            await new Promise(r => setTimeout(r, 1000));
+        }
+        konus("Servis tamamlandı. İyi mesailer.");
+    }
+</script>
+
+</body>
+</html>
