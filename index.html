@@ -2,44 +2,45 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>İzmit - Tepetarla Canlı Servis</title>
+    <title>İzmit-Tepetarla Akıllı Servis (GPS + Takip)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 10px; margin: 0; }
-        .panel { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-        h2 { text-align: center; color: #1a73e8; margin-bottom: 5px; }
-        .user-info { text-align: center; font-size: 14px; color: #555; margin-bottom: 15px; background: #e8f0fe; padding: 8px; border-radius: 10px; }
-        .durak-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .durak-btn { 
-            padding: 15px 10px; border: 2px solid #ddd; border-radius: 12px; background: white;
-            cursor: pointer; font-size: 15px; display: flex; flex-direction: column; align-items: center; transition: 0.2s;
-        }
-        .no { background: #1a73e8; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 5px; font-weight: bold; font-size: 12px; }
-        .secili { background: #2ecc71 !important; color: white; border-color: #27ae60; box-shadow: 0 4px 8px rgba(46, 204, 113, 0.3); }
-        .secili .no { background: white; color: #2ecc71; }
-        .bekleyenler { font-size: 11px; margin-top: 5px; font-weight: bold; text-align: center; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; padding: 10px; display: flex; justify-content: center; }
+        .panel { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 25px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #1a73e8; margin-bottom: 10px; }
         
-        .driver-zone { margin-top: 30px; background: #202124; color: white; padding: 20px; border-radius: 15px; text-align: center; }
-        .play-btn { background: #f4b400; color: #000; border: none; padding: 15px; border-radius: 10px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; margin-bottom: 10px; }
-        .clear-btn { background: #d32f2f; color: white; border: none; padding: 10px; border-radius: 8px; font-size: 12px; cursor: pointer; width: 100%; opacity: 0.8; }
-        #durum { font-size: 13px; color: #9aa0a6; margin-top: 10px; }
+        /* Araç Takip Kartı */
+        .live-tracker { background: #1a73e8; color: white; padding: 15px; border-radius: 15px; margin-bottom: 20px; text-align: center; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 0.9; } 50% { opacity: 1; } 100% { opacity: 0.9; } }
+        
+        .durak-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .durak-btn { padding: 15px 5px; border: 2px solid #ddd; border-radius: 15px; background: white; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: 0.3s; }
+        .secili { background: #2ecc71 !important; color: white; border-color: #27ae60; }
+        
+        .driver-zone { margin-top: 30px; background: #2c3e50; color: white; padding: 20px; border-radius: 20px; text-align: center; }
+        .play-btn { background: #f4b400; color: #000; border: none; padding: 18px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; }
+        #gpsBilgi { font-size: 11px; margin-top: 10px; color: #bdc3c7; }
     </style>
 </head>
 <body>
 
 <div class="panel">
-    <h2>🚌 Servis Bildir</h2>
-    <div id="userInfo" class="user-info">İsim ayarlanıyor...</div>
+    <h2>🚌 Servis Takip</h2>
     
+    <div class="live-tracker">
+        <div style="font-size: 12px; opacity: 0.8;">SERVİS ŞU AN BURADA:</div>
+        <div id="aracKonumuText" style="font-size: 18px; font-weight: bold; margin-top: 5px;">Bağlantı bekleniyor...</div>
+    </div>
+
     <div class="durak-grid" id="durakContainer"></div>
 
     <div class="driver-zone">
-        <h3>👨‍✈️ Şoför Paneli</h3>
-        <button class="play-btn" onclick="surusuBaslat()">SÜRÜŞÜ BAŞLAT 🔊</button>
-        <button class="clear-btn" onclick="listeyiSifirla()">❌ TÜM LİSTEYİ TEMİZLE (YENİ VARDİYA)</button>
-        <p id="durum">Bağlantı bekleniyor...</p>
+        <h3 style="margin-top:0">👨‍✈️ Kaptan Paneli</h3>
+        <button id="startBtn" class="play-btn" onclick="gpsTakibiBaslat()">YOLA ÇIK / GPS AÇ 📡</button>
+        <div id="gpsBilgi">GPS kapalı.</div>
+        <button style="background:#e74c3c; color:white; border:none; padding:10px; margin-top:15px; border-radius:8px; width:100%; cursor:pointer;" onclick="listeyiSifirla()">VARDİYA BİTTİ (TEMİZLE)</button>
     </div>
 </div>
 
@@ -57,88 +58,122 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // PERSONEL İSMİ KONTROLÜ
-    let kullaniciAdi = localStorage.getItem('servisKullaniciAdi');
-    if (!kullaniciAdi) {
-        kullaniciAdi = prompt("Lütfen adınızı ve soyadınızı yazın (Bir kez sorulacak):");
-        if (!kullaniciAdi) kullaniciAdi = "İsimsiz Personel";
-        localStorage.setItem('servisKullaniciAdi', kullaniciAdi);
-    }
-    document.getElementById('userInfo').innerText = "Hoş geldin, " + kullaniciAdi;
+    const durakVerileri = [
+        { ad: "Orduevi", lat: 40.7630, lon: 29.9140 },
+        { ad: "Halkevi", lat: 40.7621, lon: 29.9288 },
+        { ad: "Yenicuma", lat: 40.7635, lon: 29.9375 },
+        { ad: "Emniyet", lat: 40.7645, lon: 29.9450 },
+        { ad: "Real", lat: 40.7655, lon: 29.9550 },
+        { ad: "Kandıra Sapağı", lat: 40.7660, lon: 29.9680 },
+        { ad: "Kavakçılık", lat: 40.7670, lon: 29.9800 },
+        { ad: "Akademi", lat: 40.7680, lon: 29.9920 },
+        { ad: "Sembol", lat: 40.7690, lon: 30.0050 },
+        { ad: "Goodyear Sapağı", lat: 40.7705, lon: 30.0150 },
+        { ad: "Ustaeller", lat: 40.7720, lon: 30.0300 },
+        { ad: "Gazoz", lat: 40.7730, lon: 30.0350 },
+        { ad: "Tesis", lat: 40.7750, lon: 30.0500 }
+    ];
 
-    const duraklar = ["Orduevi (Seka Cami)", "Halkevi", "Yenicuma", "Emniyet", "Real", "Kandıra Sapağı", "Kavakçılık", "Akademi", "Sembol", "Goodyear Sapağı", "Askeriye Sapağı", "Ustaeller", "Gazoz", "Diş Hastanesi", "Likarba", "Sarımeşe", "Tesis"];
-    
+    let kullaniciAdi = localStorage.getItem('servisKullaniciAdi') || prompt("Adınız Soyadınız:");
+    localStorage.setItem('servisKullaniciAdi', kullaniciAdi);
+
     let bulutVerisi = {};
-
-    // Durakları ekrana çiz
     const container = document.getElementById('durakContainer');
-    duraklar.forEach((d, index) => {
+
+    durakVerileri.forEach((d, i) => {
         let btn = document.createElement('button');
         btn.className = 'durak-btn';
-        btn.id = "btn-" + index;
-        btn.innerHTML = `
-            <span class="no">${index + 1}</span>
-            <span style="font-weight:bold">${d}</span>
-            <div id="bekleyen-${index}" class="bekleyenler"></div>
-        `;
-        
-        btn.onclick = function() {
-            // Eğer personel zaten bu durakta kayıtlıysa, kaydını sil (İptal Etme)
-            if (bulutVerisi[d] && bulutVerisi[d][kullaniciAdi]) {
-                db.ref('aktifDuraklar/' + d + '/' + kullaniciAdi).remove();
-            } else {
-                // Değilse kaydet
-                db.ref('aktifDuraklar/' + d + '/' + kullaniciAdi).set(true);
-            }
+        btn.id = "btn-" + i;
+        btn.innerHTML = `<span style="font-size:10px; opacity:0.6">${i+1}</span><strong>${d.ad}</strong><div id="isimler-${i}" style="font-size:10px; color:#555"></div>`;
+        btn.onclick = () => {
+            if (bulutVerisi[d.ad] && bulutVerisi[d.ad][kullaniciAdi]) db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).remove();
+            else db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).set(true);
         };
         container.appendChild(btn);
     });
 
-    // VERİTABANINI DİNLE
-    db.ref('aktifDuraklar').on('value', (snapshot) => {
-        bulutVerisi = snapshot.val() || {};
-        document.getElementById('durum').innerText = "Sistem Aktif - Veriler Güncel";
-
-        duraklar.forEach((d, i) => {
-            const bekleyenlerDiv = document.getElementById("bekleyen-" + i);
-            const buton = document.getElementById("btn-" + i);
-            
-            if (bulutVerisi[d]) {
-                const isimler = Object.keys(bulutVerisi[d]);
-                bekleyenlerDiv.innerText = isimler.join(", ");
-                buton.classList.add('secili');
+    // VERİLERİ DİNLE (Duraklar + Araç Konumu)
+    db.ref().on('value', snap => {
+        const data = snap.val() || {};
+        bulutVerisi = data.aktifDuraklar || {};
+        
+        // 1. Durak Butonlarını Güncelle
+        durakVerileri.forEach((d, i) => {
+            const btn = document.getElementById("btn-"+i);
+            const isimDiv = document.getElementById("isimler-"+i);
+            if (bulutVerisi[d.ad]) {
+                btn.classList.add('secili');
+                isimDiv.innerText = Object.keys(bulutVerisi[d.ad]).join(", ");
             } else {
-                bekleyenlerDiv.innerText = "";
-                buton.classList.remove('secili');
+                btn.classList.remove('secili');
+                isimDiv.innerText = "";
             }
         });
+
+        // 2. Aracın Nerede Olduğunu Yaz
+        if (data.aracKonumu) {
+            document.getElementById('aracKonumuText').innerText = data.aracKonumu.nerede;
+        } else {
+            document.getElementById('aracKonumuText').innerText = "Servis henüz başlamadı.";
+        }
     });
 
     function konus(metin) {
         const msg = new SpeechSynthesisUtterance(metin);
         msg.lang = 'tr-TR';
-        msg.rate = 0.9;
         window.speechSynthesis.speak(msg);
     }
 
-    async function surusuBaslat() {
-        for (let i = 0; i < duraklar.length; i++) {
-            let d = duraklar[i];
-            document.getElementById('durum').innerText = "Geçilen: " + d;
-            
-            if (bulutVerisi[d]) {
-                const isimler = Object.keys(bulutVerisi[d]);
-                konus((i+1) + " numaralı " + d + " durağında " + isimler.length + " kişi bekliyor: " + isimler.join(", "));
-                await new Promise(r => setTimeout(r, 6000));
-            }
-            await new Promise(r => setTimeout(r, 1000));
-        }
-        konus("Servis rotası tamamlandı. Herkese iyi mesailer.");
+    let anonsYapilanlar = new Set();
+
+    function gpsTakibiBaslat() {
+        if (!navigator.geolocation) return alert("Cihazınız GPS desteklemiyor.");
+        document.getElementById('startBtn').innerText = "TAKİP AÇIK ✅";
+        document.getElementById('startBtn').style.background = "#2ecc71";
+        
+        navigator.geolocation.watchPosition(pos => {
+            const myLat = pos.coords.latitude;
+            const myLon = pos.coords.longitude;
+            let enYakinDurak = "Yolda...";
+            let minMesafe = 999;
+
+            durakVerileri.forEach((durak, index) => {
+                const mesafe = calculateDistance(myLat, myLon, durak.lat, durak.lon);
+                
+                if (mesafe < minMesafe) {
+                    minMesafe = mesafe;
+                    enYakinDurak = durak.ad + " yakınlarında";
+                }
+
+                if (mesafe < 0.25 && !anonsYapilanlar.has(durak.ad)) {
+                    if (bulutVerisi[durak.ad]) {
+                        const isimler = Object.keys(bulutVerisi[durak.ad]);
+                        konus(`${durak.ad} durağına geldiniz. ${isimler.length} personel bekliyor: ${isimler.join(", ")}`);
+                    }
+                    anonsYapilanlar.add(durak.ad);
+                }
+            });
+
+            // KONUMU BULUTA GÖNDER (Personel görsün)
+            db.ref('aracKonumu').set({ nerede: enYakinDurak, saat: new Date().toLocaleTimeString() });
+            document.getElementById('gpsBilgi').innerText = "Son Güncelleme: " + new Date().toLocaleTimeString();
+
+        }, err => alert("Hata: " + err.message), { enableHighAccuracy: true });
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
     function listeyiSifirla() {
-        if(confirm("DİKKAT! Tüm personelin seçimlerini sileceksiniz. Yeni vardiyaya mı geçiyorsunuz?")) {
-            db.ref('aktifDuraklar').remove();
+        if(confirm("DİKKAT: Yeni vardiya için tüm listeyi ve araç konumunu temizliyorsunuz?")) {
+            db.ref().remove();
+            anonsYapilanlar.clear();
+            location.reload();
         }
     }
 </script>
