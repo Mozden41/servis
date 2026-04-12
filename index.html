@@ -187,3 +187,22 @@
                     if (bulutVerisi[durak.ad]) {
                         const isimler = Object.keys(bulutVerisi[durak.ad]).filter(n => n !== "null");
                         konus(`${durak.ad} durağına yaklaştınız. Bekleyenler: ${isimler.join(", ")}`);
+                        document.getElementById('debugInfo').innerText = "Son Anons: " + durak.ad;
+                    }
+                    anonsYapilanlar.add(durak.ad);
+                }
+            });
+            db.ref('aracKonumu').set({ nerede: yakinDurak });
+        }, null, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function listeyiSifirla() { if(confirm("Vardiyayı bitirip listeyi temizle?")) { db.ref().remove(); anonsYapilanlar.clear(); location.reload(); } }
+</script>
+</body>
+</html>
