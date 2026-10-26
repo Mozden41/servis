@@ -2,15 +2,18 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>İzmit-Tepetarla Stratejik Servis V6</title>
+    <title>İzmit-Tepetarla Stratejik Servis V7</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         :root { --primary: #1a73e8; --success: #2ecc71; --dark: #2c3e50; --warning: #f4b400; }
         body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; margin: 0; padding: 10px; display: flex; justify-content: center; }
-        .panel { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        .panel { background: white; width: 100%; max-width: 500px; padding: 20px; border-radius: 30px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); box-sizing: border-box; }
         h2 { text-align: center; color: var(--primary); cursor: pointer; margin-bottom: 10px; }
+        #userInfo { text-align: center; font-size: 11px; margin-bottom: 10px; color: #888; cursor: pointer; }
         .live-tracker { background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; padding: 15px; border-radius: 20px; text-align: center; margin-bottom: 15px; }
         .durak-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .durak-btn { padding: 15px 10px; border: 2px solid #edf2f7; border-radius: 18px; background: #fff; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
@@ -20,15 +23,26 @@
         .bekleyen-isimler { font-size: 10px; margin-top: 5px; font-weight: bold; text-align: center; }
         .driver-zone { display: none; margin-top: 25px; background: var(--dark); color: white; padding: 20px; border-radius: 25px; border: 3px solid var(--warning); }
         .btn-main { background: var(--warning); color: #000; border: none; padding: 18px; border-radius: 15px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%; }
-        #debugInfo { background: #000; color: #0f0; padding: 8px; border-radius: 8px; font-family: monospace; font-size: 10px; margin-top: 10px; line-height: 1.4; }
+        .btn-main:disabled { background: var(--success); color: white; cursor: default; }
+        #debugInfo { background: #000; color: #0f0; padding: 8px; border-radius: 8px; font-family: monospace; font-size: 10px; margin-top: 10px; line-height: 1.4; white-space: pre-line; }
+        .isaretle-kutusu { background: #34495e; padding: 12px; border-radius: 15px; margin-top: 20px; }
+        .isaretle-kutusu h4 { margin: 0 0 10px; color: var(--warning); }
+        .isaretle-kutusu select, .isaretle-kutusu button { width: 100%; padding: 10px; border-radius: 10px; border: none; font-size: 14px; margin-bottom: 8px; box-sizing: border-box; }
+        .isaretle-kutusu button { background: var(--warning); font-weight: bold; cursor: pointer; }
+        .isaretle-kutusu .btn-ikincil { background: #95a5a6; color: white; }
+        .isaretle-kutusu .btn-ikincil.aktif { background: #e67e22; }
+        #harita { height: 320px; border-radius: 12px; margin-top: 4px; color: #000; }
+        .harita-no { background: #95a5a6; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
+        .harita-no.isaretli { background: var(--success); }
+        .aciklama { font-size: 11px; opacity: 0.8; margin: 4px 0 0; }
     </style>
 </head>
 <body>
 
 <div class="panel">
-    <h2 onclick="kaptanKilidiniAc()">🚌 Akıllı Servis V6</h2>
-    <div id="userInfo" style="text-align:center; font-size:11px; margin-bottom:10px; color:#888;"></div>
-    
+    <h2 onclick="kaptanKilidiniAc()">🚌 Akıllı Servis V7</h2>
+    <div id="userInfo" onclick="adSor()"></div>
+
     <div class="live-tracker">
         <div id="aracKonumuText" style="font-size: 18px; font-weight: bold;">Sistem Başlatılıyor...</div>
     </div>
@@ -39,6 +53,16 @@
         <h3 style="text-align:center; color:var(--warning); margin-top:0;">👨‍✈️ Şoför Strateji Paneli</h3>
         <button id="startBtn" class="btn-main" onclick="gpsTakibiBaslat()">🛰️ GPS & STRATEJİK ANONS</button>
         <div id="debugInfo">Radar Beklemede...</div>
+
+        <div class="isaretle-kutusu">
+            <h4>📍 Durak İşaretle</h4>
+            <select id="durakSecim"></select>
+            <button onclick="buradaKaydet()">📍 Seçili durağı bulunduğum yere kaydet</button>
+            <button id="duzenleBtn" class="btn-ikincil" onclick="duzenlemeModunuDegistir()">✋ Haritada sürükleyerek düzelt: KAPALI</button>
+            <div id="harita"></div>
+            <p class="aciklama">🟢 İşaretlenmiş durak · ⚪ Tahmini konum (henüz işaretlenmedi)</p>
+        </div>
+
         <button style="background:#e74c3c; color:white; border:none; padding:10px; margin-top:20px; border-radius:10px; width:100%; font-weight:bold;" onclick="listeyiSifirla()">🧹 VARDİYA SIFIRLA</button>
     </div>
 </div>
@@ -56,9 +80,19 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let tik = 0;
-    function kaptanKilidiniAc() { tik++; if (tik === 3) { if (prompt("Şifre:") === "4141") document.getElementById('kaptanPanel').style.display='block'; else tik=0; } }
+    const YARICAP = 0.40; // km: bu mesafeye girilince durağa yaklaşılıyor sayılır
+    const DURAKTA = 0.08; // km: bu mesafenin içi "durakta" sayılır
 
+    let tik = 0;
+    function kaptanKilidiniAc() {
+        tik++;
+        if (tik === 3) {
+            if (prompt("Şifre:") === "4141") { document.getElementById('kaptanPanel').style.display = 'block'; haritayiAc(); }
+            else tik = 0;
+        }
+    }
+
+    // Tahmini konumlar. Durak işaretlenince Firebase'deki konum bunların yerine geçer.
     const duraklar = [
         { ad: "Orduevi", lat: 40.7632, lon: 29.9124 }, { ad: "Halkevi", lat: 40.7632, lon: 29.9250 },
         { ad: "Yenicuma", lat: 40.7625, lon: 29.9330 }, { ad: "Emniyet", lat: 40.7610, lon: 29.9450 },
@@ -66,38 +100,95 @@
         { ad: "Kavakçılık", lat: 40.7610, lon: 29.9650 }, { ad: "Akademi", lat: 40.7600, lon: 29.9700 },
         { ad: "Sembol", lat: 40.7591, lon: 29.9794 }, { ad: "Goodyear", lat: 40.7547, lon: 29.9878 },
         { ad: "Askeriye", lat: 40.7520, lon: 30.0050 }, { ad: "Ustaeller", lat: 40.7500, lon: 30.0150 },
-        { ad: "Gazoz", lat: 40.7480, lon: 30.0250 }, { ad: "Diş Hast.", lat: 40.7460, lon: 30.0350 },
+        { ad: "Gazoz", lat: 40.7480, lon: 30.0250 }, { ad: "Diş Hast.", sesliAd: "Diş Hastanesi", lat: 40.7460, lon: 30.0350 },
         { ad: "Likarba", lat: 40.7450, lon: 30.0400 }, { ad: "Sarımeşe", lat: 40.7440, lon: 30.0450 },
         { ad: "Tesis", lat: 40.7420, lon: 30.0500 }
     ];
+    // Firebase anahtarlarında "." gibi karakterler olamaz, bu yüzden duraklar adla değil numarayla saklanır
+    duraklar.forEach((d, i) => { d.id = "d" + (i + 1); d.tahminiLat = d.lat; d.tahminiLon = d.lon; d.isaretli = false; });
 
-    let kullaniciAdi = localStorage.getItem('servisKullaniciAdi') || prompt("Ad Soyad:");
-    localStorage.setItem('servisKullaniciAdi', kullaniciAdi);
-    document.getElementById('userInfo').innerText = "👤 " + (kullaniciAdi || "Misafir");
+    // İsimdeki . # $ [ ] / % karakterleri Firebase anahtarı için kodlanır
+    const anahtar = s => s.replace(/[.#$\[\]\/%]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
+    const isimCoz = k => k.replace(/%([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
 
     let bulutVerisi = {};
+
+    let gpsAktif = false;
+    let sonKonum = null;
+    let yakinIndex = -1;      // Alanı içinde bulunduğumuz durak
+    let gecilenIndex = -1;    // En son geçilen durak
+    let sonAnonsEdilenIndex = -1;
+    let sonKonumMetni = "";
+
+    // Durak işaretleme haritası
+    let harita = null, durakIsaretleri = [], aracIsareti = null, duzenlemeModu = false;
+
+    const bekleyenler = d => Object.keys(bulutVerisi[d.id] || {}).map(isimCoz);
+
+    let kullaniciAdi = null;
+    try { kullaniciAdi = localStorage.getItem('servisKullaniciAdi'); } catch (e) {}
+    if (kullaniciAdi === "null" || !kullaniciAdi) kullaniciAdi = null;
+
+    function kullaniciBilgisiniGoster() {
+        document.getElementById('userInfo').innerText = kullaniciAdi ? "👤 " + kullaniciAdi + " (değiştir)" : "👤 Adınızı girmek için dokunun";
+    }
+
+    function adSor() {
+        const yeni = (prompt("Ad Soyad:", kullaniciAdi || "") || "").trim();
+        if (!yeni) return false;
+        if (kullaniciAdi && yeni !== kullaniciAdi) {
+            // Eski adla yapılan seçimleri yeni ada taşı
+            duraklar.forEach(d => {
+                if (bulutVerisi[d.id] && bulutVerisi[d.id][anahtar(kullaniciAdi)]) {
+                    db.ref(`aktifDuraklar/${d.id}/${anahtar(kullaniciAdi)}`).remove();
+                    db.ref(`aktifDuraklar/${d.id}/${anahtar(yeni)}`).set(true);
+                }
+            });
+        }
+        kullaniciAdi = yeni;
+        try { localStorage.setItem('servisKullaniciAdi', kullaniciAdi); } catch (e) {}
+        kullaniciBilgisiniGoster();
+        return true;
+    }
+
+    kullaniciBilgisiniGoster();
+    if (!kullaniciAdi) adSor();
+
     const container = document.getElementById('durakContainer');
+    const durakSecim = document.getElementById('durakSecim');
     duraklar.forEach((d, i) => {
         let btn = document.createElement('button');
         btn.className = 'durak-btn'; btn.id = "btn-" + i;
         btn.innerHTML = `<div class="no">${i+1}</div><strong>${d.ad}</strong><div id="isimler-${i}" class="bekleyen-isimler"></div>`;
         btn.onclick = () => {
-            if (bulutVerisi[d.ad] && bulutVerisi[d.ad][kullaniciAdi]) db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).remove();
-            else db.ref('aktifDuraklar/'+d.ad+'/'+kullaniciAdi).set(true);
+            if (!kullaniciAdi && !adSor()) return;
+            const ref = db.ref(`aktifDuraklar/${d.id}/${anahtar(kullaniciAdi)}`);
+            if (bulutVerisi[d.id] && bulutVerisi[d.id][anahtar(kullaniciAdi)]) ref.remove();
+            else ref.set(true);
         };
         container.appendChild(btn);
+
+        const secenek = document.createElement('option');
+        secenek.value = i; secenek.innerText = `${i+1}. ${d.ad}`;
+        durakSecim.appendChild(secenek);
     });
 
     db.ref().on('value', snap => {
-        const data = snap.val() || {}; bulutVerisi = data.aktifDuraklar || {};
+        const data = snap.val() || {};
+        bulutVerisi = data.aktifDuraklar || {};
+        const kayitliKonumlar = data.durakKonumlari || {};
         duraklar.forEach((d, i) => {
+            const k = kayitliKonumlar[d.id];
+            d.lat = k ? k.lat : d.tahminiLat; d.lon = k ? k.lon : d.tahminiLon; d.isaretli = !!k;
+
             const btn = document.getElementById("btn-"+i); const isimDiv = document.getElementById("isimler-"+i);
-            if (bulutVerisi[d.ad]) {
-                const isimler = Object.keys(bulutVerisi[d.ad]).filter(n => n !== "null");
-                btn.classList.add('secili'); isimDiv.innerText = isimler.join(", ");
-            } else { btn.classList.remove('secili'); isimDiv.innerText = ""; }
+            const isimler = bekleyenler(d);
+            if (isimler.length) { btn.classList.add('secili'); isimDiv.innerText = isimler.join(", "); }
+            else { btn.classList.remove('secili'); isimDiv.innerText = ""; }
         });
         document.getElementById('aracKonumuText').innerText = data.aracKonumu ? data.aracKonumu.nerede : "Beklemede";
+        haritayiGuncelle();
+        anonsKontrol();
     });
 
     function konus(metin) {
@@ -108,49 +199,65 @@
         if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
     }
 
-    let sonAnonsEdilenIndex = -1;
+    function bilgiYaz(metin) { document.getElementById('debugInfo').innerText = metin; }
 
     function gpsTakibiBaslat() {
-        if (!navigator.geolocation) return;
+        if (gpsAktif) return;
+        if (!navigator.geolocation) { alert("Bu cihazda GPS desteklenmiyor."); return; }
+        gpsAktif = true;
         konus("Stratejik takip başlatıldı.");
-        document.getElementById('startBtn').innerText = "RADAR AKTİF ✅";
+        const startBtn = document.getElementById('startBtn');
+        startBtn.innerText = "RADAR AKTİF ✅"; startBtn.disabled = true;
 
-        navigator.geolocation.watchPosition(pos => {
-            const lat = pos.coords.latitude; const lon = pos.coords.longitude;
-            let suAnkiDurakIndex = -1;
-            let minM = 0.40; // 400 metre içindeyse o duraktasın sayılır
+        navigator.geolocation.watchPosition(konumGeldi, hata => bilgiYaz("GPS hatası: " + hata.message),
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+    }
 
-            // 1. Önce hangi duraktayız veya hangi durağı geçtik onu bul
-            duraklar.forEach((d, i) => {
-                if (calculateDistance(lat, lon, d.lat, d.lon) < minM) suAnkiDurakIndex = i;
-            });
+    function konumGeldi(pos) {
+        sonKonum = { lat: pos.coords.latitude, lon: pos.coords.longitude, dogruluk: pos.coords.accuracy, zaman: Date.now() };
 
-            // 2. Eğer bir duraktaysak veya bir duraktan yeni ayrıldıysak, ilerideki İLK dolu durağı bul
-            if (suAnkiDurakIndex !== -1) {
-                let sonrakiDoluDurak = null;
-                for (let j = suAnkiDurakIndex + 1; j < duraklar.length; j++) {
-                    if (bulutVerisi[duraklar[j].ad]) {
-                        sonrakiDoluDurak = { info: duraklar[j], index: j };
-                        break;
-                    }
-                }
+        // 1. En yakın durağı bul (alanlar üst üste binebildiği için en yakını esas alınır)
+        let enYakin = -1, enYakinKm = Infinity;
+        duraklar.forEach((d, i) => {
+            const km = calculateDistance(sonKonum.lat, sonKonum.lon, d.lat, d.lon);
+            if (km < enYakinKm) { enYakinKm = km; enYakin = i; }
+        });
+        const yeniYakin = enYakinKm < YARICAP ? enYakin : -1;
 
-                // 3. Bulunan dolu durak daha önce anons edilmediyse anons et
-                if (sonrakiDoluDurak && sonAnonsEdilenIndex !== sonrakiDoluDurak.index) {
-                    const isimler = Object.keys(bulutVerisi[sonrakiDoluDurak.info.ad]).filter(n => n !== "null");
-                    konus(`Sıradaki durak ${sonrakiDoluDurak.info.ad}. ${isimler.length} personel bekliyor.`);
-                    sonAnonsEdilenIndex = sonrakiDoluDurak.index;
-                    document.getElementById('debugInfo').innerText = `Konum: ${duraklar[suAnkiDurakIndex].ad}\nİleri Hedef: ${sonrakiDoluDurak.info.ad}\nAnons Tamam.`;
-                } else if (!sonrakiDoluDurak) {
-                    document.getElementById('debugInfo').innerText = `Konum: ${duraklar[suAnkiDurakIndex].ad}\nİleride bekleyen personel yok.`;
-                }
-            }
-            
-            // Konum bilgisini personelle paylaş
-            let nerede = suAnkiDurakIndex !== -1 ? duraklar[suAnkiDurakIndex].ad + " geçildi" : "Yolda...";
-            db.ref('aracKonumu').set({ nerede: nerede });
+        // 2. Bir durağın alanından çıkıldıysa ya da durağa varıldıysa o durak geçilmiş sayılır
+        if (yakinIndex !== -1 && yeniYakin !== yakinIndex) gecilenIndex = Math.max(gecilenIndex, yakinIndex);
+        if (yeniYakin !== -1 && enYakinKm < DURAKTA) gecilenIndex = Math.max(gecilenIndex, yeniYakin);
+        yakinIndex = yeniYakin;
 
-        }, null, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+        // 3. Konum bilgisini personelle paylaş (sadece değiştiğinde)
+        let metin;
+        if (yakinIndex !== -1 && enYakinKm < DURAKTA) metin = duraklar[yakinIndex].ad + " durağında";
+        else if (yakinIndex !== -1 && yakinIndex > gecilenIndex) metin = duraklar[yakinIndex].ad + " durağına yaklaşıyor";
+        else if (gecilenIndex !== -1) metin = duraklar[gecilenIndex].ad + " geçildi";
+        else metin = "Yolda...";
+        if (metin !== sonKonumMetni) { sonKonumMetni = metin; db.ref('aracKonumu').set({ nerede: metin }); }
+
+        aracIsaretiniGuncelle();
+        anonsKontrol();
+    }
+
+    // Henüz geçilmemiş ilk dolu durağı bul, daha önce anons edilmediyse anons et
+    function anonsKontrol() {
+        if (!gpsAktif || !sonKonum) return;
+        const konumMetni = `Konum: ${sonKonumMetni} (±${Math.round(sonKonum.dogruluk)} m)`;
+
+        let hedef = -1;
+        for (let j = gecilenIndex + 1; j < duraklar.length; j++) {
+            if (bekleyenler(duraklar[j]).length) { hedef = j; break; }
+        }
+        if (hedef === -1) { bilgiYaz(`${konumMetni}\nİleride bekleyen personel yok.`); return; }
+
+        const sayi = bekleyenler(duraklar[hedef]).length;
+        if (hedef !== sonAnonsEdilenIndex) {
+            konus(`Sıradaki durak ${duraklar[hedef].sesliAd || duraklar[hedef].ad}. ${sayi} personel bekliyor.`);
+            sonAnonsEdilenIndex = hedef;
+        }
+        bilgiYaz(`${konumMetni}\nİleri Hedef: ${duraklar[hedef].ad} (${sayi} kişi)\nAnons Tamam.`);
     }
 
     function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -159,7 +266,90 @@
         return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    function listeyiSifirla() { if(confirm("Sıfırlansın mı?")) { db.ref().remove(); sonAnonsEdilenIndex = -1; location.reload(); } }
+    // --- Durak işaretleme ---
+    const numaraIkonu = (i, isaretli) => L.divIcon({
+        className: '', iconSize: [22, 22], iconAnchor: [11, 11],
+        html: `<div class="harita-no${isaretli ? ' isaretli' : ''}">${i+1}</div>`
+    });
+
+    function haritayiAc() {
+        if (harita) { harita.invalidateSize(); return; }
+        if (typeof L === 'undefined') { document.getElementById('harita').innerText = 'Harita yüklenemedi (internet bağlantısını kontrol edin).'; return; }
+        harita = L.map('harita');
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(harita);
+        duraklar.forEach((d, i) => {
+            const m = L.marker([d.lat, d.lon], { icon: numaraIkonu(i, d.isaretli), draggable: false }).addTo(harita);
+            m.bindTooltip(`${i+1}. ${d.ad}`);
+            m.on('click', () => { durakSecim.value = i; });
+            m.on('dragend', () => {
+                const p = m.getLatLng();
+                if (confirm(`${d.ad} durağı bu noktaya taşınsın mı?`)) konumKaydet(i, p.lat, p.lng, null);
+                else m.setLatLng([d.lat, d.lon]);
+            });
+            durakIsaretleri.push(m);
+        });
+        harita.fitBounds(duraklar.map(d => [d.lat, d.lon]), { padding: [20, 20] });
+        aracIsaretiniGuncelle();
+    }
+
+    function haritayiGuncelle() {
+        if (!harita) return;
+        duraklar.forEach((d, i) => {
+            durakIsaretleri[i].setLatLng([d.lat, d.lon]);
+            durakIsaretleri[i].setIcon(numaraIkonu(i, d.isaretli));
+            if (duzenlemeModu) durakIsaretleri[i].dragging.enable();
+        });
+    }
+
+    function aracIsaretiniGuncelle() {
+        if (!harita || !sonKonum) return;
+        if (!aracIsareti) aracIsareti = L.circleMarker([sonKonum.lat, sonKonum.lon], { radius: 8, color: '#1a73e8', fillOpacity: 0.9 }).addTo(harita).bindTooltip("Araç");
+        else aracIsareti.setLatLng([sonKonum.lat, sonKonum.lon]);
+    }
+
+    function duzenlemeModunuDegistir() {
+        duzenlemeModu = !duzenlemeModu;
+        durakIsaretleri.forEach(m => duzenlemeModu ? m.dragging.enable() : m.dragging.disable());
+        const btn = document.getElementById('duzenleBtn');
+        btn.innerText = "✋ Haritada sürükleyerek düzelt: " + (duzenlemeModu ? "AÇIK" : "KAPALI");
+        btn.classList.toggle('aktif', duzenlemeModu);
+    }
+
+    function buradaKaydet() {
+        if (!navigator.geolocation) { alert("Bu cihazda GPS desteklenmiyor."); return; }
+        const i = Number(durakSecim.value); const d = duraklar[i];
+        bilgiYaz(`${d.ad} için konum alınıyor...`);
+        konumAl(pos => {
+            const dogruluk = Math.round(pos.coords.accuracy);
+            const uyari = dogruluk > 30 ? `\n⚠️ GPS doğruluğu düşük (±${dogruluk} m). Biraz bekleyip tekrar denemek daha iyi olabilir.` : "";
+            if (!confirm(`${d.ad} durağı şu anki konuma kaydedilsin mi?\nDoğruluk: ±${dogruluk} m${uyari}`)) { bilgiYaz("İşaretleme iptal edildi."); return; }
+            konumKaydet(i, pos.coords.latitude, pos.coords.longitude, dogruluk);
+        }, hata => { bilgiYaz("GPS hatası: " + hata.message); alert("Konum alınamadı: " + hata.message); });
+    }
+
+    // GPS takibi açıksa son taze konum kullanılır, değilse yeni konum istenir
+    function konumAl(basarili, hatali) {
+        if (gpsAktif && sonKonum && Date.now() - sonKonum.zaman < 5000) {
+            basarili({ coords: { latitude: sonKonum.lat, longitude: sonKonum.lon, accuracy: sonKonum.dogruluk } });
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(basarili, hatali, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    }
+
+    function konumKaydet(i, lat, lon, dogruluk) {
+        const d = duraklar[i];
+        db.ref('durakKonumlari/' + d.id).set({
+            lat: Number(lat.toFixed(6)), lon: Number(lon.toFixed(6)),
+            dogruluk: dogruluk, zaman: firebase.database.ServerValue.TIMESTAMP
+        }).then(() => bilgiYaz(`✅ ${d.ad} işaretlendi.`))
+          .catch(e => bilgiYaz("Kaydedilemedi: " + e.message));
+    }
+
+    // Durak konumları silinmesin diye sadece vardiya verileri temizlenir
+    function listeyiSifirla() {
+        if (!confirm("Sıfırlansın mı?")) return;
+        Promise.all([db.ref('aktifDuraklar').remove(), db.ref('aracKonumu').remove()]).then(() => location.reload());
+    }
 </script>
 </body>
 </html>
