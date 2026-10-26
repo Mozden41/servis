@@ -1,0 +1,44 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "soforler": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid"
+      }
+    },
+
+    "aktifDuraklar": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('soforler').child(auth.uid).val() === true",
+      "$durak": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "$durak.matches(/^d([1-9]|1[0-7])$/) && newData.isString() && newData.val().length > 0 && newData.val().length <= 60"
+        }
+      }
+    },
+
+    "aracKonumu": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('soforler').child(auth.uid).val() === true",
+      ".validate": "newData.hasChildren(['nerede'])",
+      "nerede": { ".validate": "newData.isString() && newData.val().length <= 100" },
+      "$diger": { ".validate": false }
+    },
+
+    "durakKonumlari": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('soforler').child(auth.uid).val() === true",
+      "$durak": {
+        ".validate": "$durak.matches(/^d([1-9]|1[0-7])$/) && newData.hasChildren(['lat', 'lon', 'zaman'])",
+        "lat": { ".validate": "newData.isNumber() && newData.val() > 40 && newData.val() < 41.5" },
+        "lon": { ".validate": "newData.isNumber() && newData.val() > 29 && newData.val() < 31" },
+        "dogruluk": { ".validate": "newData.isNumber()" },
+        "zaman": { ".validate": "newData.isNumber()" },
+        "$diger": { ".validate": false }
+      }
+    }
+  }
+}

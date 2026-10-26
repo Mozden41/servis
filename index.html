@@ -2,10 +2,11 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>İzmit-Tepetarla Stratejik Servis V7</title>
+    <title>İzmit-Tepetarla Stratejik Servis V8</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.17.1/firebase-auth-compat.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -35,12 +36,14 @@
         .harita-no { background: #95a5a6; color: white; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 11px; border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.5); }
         .harita-no.isaretli { background: var(--success); }
         .aciklama { font-size: 11px; opacity: 0.8; margin: 4px 0 0; }
+        .giris-input { width: 100%; padding: 12px; border-radius: 10px; border: none; font-size: 15px; margin-bottom: 10px; box-sizing: border-box; }
+        #girisHata { color: #ff8a80; font-size: 12px; margin-top: 10px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="panel">
-    <h2 onclick="kaptanKilidiniAc()">🚌 Akıllı Servis V7</h2>
+    <h2 onclick="kaptanKilidiniAc()">🚌 Akıllı Servis V8</h2>
     <div id="userInfo" onclick="adSor()"></div>
 
     <div class="live-tracker">
@@ -48,6 +51,14 @@
     </div>
 
     <div class="durak-grid" id="durakContainer"></div>
+
+    <div id="girisKutusu" class="driver-zone">
+        <h3 style="text-align:center; color:var(--warning); margin-top:0;">🔐 Şoför Girişi</h3>
+        <input id="girisEposta" class="giris-input" type="email" placeholder="E-posta" autocomplete="username">
+        <input id="girisSifre" class="giris-input" type="password" placeholder="Şifre" autocomplete="current-password">
+        <button class="btn-main" onclick="soforGiris()">Giriş Yap</button>
+        <div id="girisHata"></div>
+    </div>
 
     <div id="kaptanPanel" class="driver-zone">
         <h3 style="text-align:center; color:var(--warning); margin-top:0;">👨‍✈️ Şoför Strateji Paneli</h3>
@@ -64,6 +75,7 @@
         </div>
 
         <button style="background:#e74c3c; color:white; border:none; padding:10px; margin-top:20px; border-radius:10px; width:100%; font-weight:bold;" onclick="listeyiSifirla()">🧹 VARDİYA SIFIRLA</button>
+        <button style="background:transparent; color:#bbb; border:1px solid #777; padding:8px; margin-top:10px; border-radius:10px; width:100%;" onclick="soforCikis()">🚪 Şoför hesabından çık</button>
     </div>
 </div>
 
@@ -79,18 +91,71 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
+    const auth = firebase.auth();
 
     const YARICAP = 0.40; // km: bu mesafeye girilince durağa yaklaşılıyor sayılır
     const DURAKTA = 0.08; // km: bu mesafenin içi "durakta" sayılır
 
+    // --- Giriş ---
+    // Personel görünmez anonim hesapla bağlanır; şoför Firebase'de tanımlı e-posta/şifreyle girer.
+    // Kim neyi yazabilir, Firebase veritabanı kurallarında (database.rules.json) belirlenir.
+    let benimUid = null;
+    let soforMu = false;
+    let dinlemeBasladi = false;
+
     let tik = 0;
     function kaptanKilidiniAc() {
         tik++;
-        if (tik === 3) {
-            if (prompt("Şifre:") === "4141") { document.getElementById('kaptanPanel').style.display = 'block'; haritayiAc(); }
-            else tik = 0;
-        }
+        if (tik < 3) return;
+        tik = 0;
+        if (soforMu) { soforPaneliniAc(); return; }
+        document.getElementById('girisKutusu').style.display = 'block';
+        document.getElementById('girisEposta').focus();
     }
+
+    function soforPaneliniAc() {
+        document.getElementById('girisKutusu').style.display = 'none';
+        document.getElementById('kaptanPanel').style.display = 'block';
+        haritayiAc();
+    }
+
+    function soforGiris() {
+        const eposta = document.getElementById('girisEposta').value.trim();
+        const sifre = document.getElementById('girisSifre').value;
+        const hataDiv = document.getElementById('girisHata');
+        hataDiv.innerText = "Giriş yapılıyor...";
+        auth.signInWithEmailAndPassword(eposta, sifre)
+            .then(() => { document.getElementById('girisSifre').value = ""; hataDiv.innerText = ""; })
+            .catch(() => { hataDiv.innerText = "E-posta veya şifre hatalı."; });
+    }
+
+    function soforCikis() {
+        if (!confirm("Şoför hesabından çıkılsın mı?")) return;
+        auth.signOut().then(() => location.reload());
+    }
+
+    function baglantiHatasi(e) {
+        console.error(e);
+        document.getElementById('aracKonumuText').innerText = "⚠️ Bağlantı kurulamadı";
+        bilgiYaz("Hata: " + e.message);
+    }
+
+    auth.onAuthStateChanged(kullanici => {
+        if (!kullanici) { auth.signInAnonymously().catch(baglantiHatasi); return; }
+        benimUid = kullanici.uid;
+        const soforKontrol = kullanici.isAnonymous ? Promise.resolve(false)
+            : db.ref('soforler/' + kullanici.uid).get().then(s => s.val() === true).catch(() => false);
+        soforKontrol.then(sofor => {
+            soforMu = sofor;
+            if (!dinlemeBasladi) { dinlemeBasladi = true; verileriDinle(); }
+            if (soforMu) soforPaneliniAc();
+            else if (!kullanici.isAnonymous) {
+                document.getElementById('girisHata').innerText = "Bu hesap şoför olarak tanımlı değil.";
+                auth.signOut();
+            }
+            ekraniGuncelle();
+        });
+    });
 
     // Tahmini konumlar. Durak işaretlenince Firebase'deki konum bunların yerine geçer.
     const duraklar = [
@@ -104,12 +169,9 @@
         { ad: "Likarba", lat: 40.7450, lon: 30.0400 }, { ad: "Sarımeşe", lat: 40.7440, lon: 30.0450 },
         { ad: "Tesis", lat: 40.7420, lon: 30.0500 }
     ];
-    // Firebase anahtarlarında "." gibi karakterler olamaz, bu yüzden duraklar adla değil numarayla saklanır
+    // Firebase anahtarlarında "." gibi karakterler olamaz, bu yüzden duraklar adla değil numarayla saklanır.
+    // Bekleyenler aktifDuraklar/<durak>/<kullanıcı kimliği> = "Ad Soyad" olarak tutulur.
     duraklar.forEach((d, i) => { d.id = "d" + (i + 1); d.tahminiLat = d.lat; d.tahminiLon = d.lon; d.isaretli = false; });
-
-    // İsimdeki . # $ [ ] / % karakterleri Firebase anahtarı için kodlanır
-    const anahtar = s => s.replace(/[.#$\[\]\/%]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
-    const isimCoz = k => k.replace(/%([0-9A-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
 
     let bulutVerisi = {};
 
@@ -123,7 +185,8 @@
     // Durak işaretleme haritası
     let harita = null, durakIsaretleri = [], aracIsareti = null, duzenlemeModu = false;
 
-    const bekleyenler = d => Object.keys(bulutVerisi[d.id] || {}).map(isimCoz);
+    const bekleyenler = d => Object.values(bulutVerisi[d.id] || {}).filter(v => typeof v === 'string');
+    const benSeciliyim = d => !!(benimUid && bulutVerisi[d.id] && bulutVerisi[d.id][benimUid]);
 
     let kullaniciAdi = null;
     try { kullaniciAdi = localStorage.getItem('servisKullaniciAdi'); } catch (e) {}
@@ -134,17 +197,11 @@
     }
 
     function adSor() {
-        const yeni = (prompt("Ad Soyad:", kullaniciAdi || "") || "").trim();
+        let yeni = (prompt("Ad Soyad:", kullaniciAdi || "") || "").trim();
         if (!yeni) return false;
-        if (kullaniciAdi && yeni !== kullaniciAdi) {
-            // Eski adla yapılan seçimleri yeni ada taşı
-            duraklar.forEach(d => {
-                if (bulutVerisi[d.id] && bulutVerisi[d.id][anahtar(kullaniciAdi)]) {
-                    db.ref(`aktifDuraklar/${d.id}/${anahtar(kullaniciAdi)}`).remove();
-                    db.ref(`aktifDuraklar/${d.id}/${anahtar(yeni)}`).set(true);
-                }
-            });
-        }
+        yeni = yeni.slice(0, 60);
+        // Seçili duraklardaki ad da güncellenir
+        duraklar.forEach(d => { if (benSeciliyim(d)) db.ref(`aktifDuraklar/${d.id}/${benimUid}`).set(yeni); });
         kullaniciAdi = yeni;
         try { localStorage.setItem('servisKullaniciAdi', kullaniciAdi); } catch (e) {}
         kullaniciBilgisiniGoster();
@@ -161,10 +218,10 @@
         btn.className = 'durak-btn'; btn.id = "btn-" + i;
         btn.innerHTML = `<div class="no">${i+1}</div><strong>${d.ad}</strong><div id="isimler-${i}" class="bekleyen-isimler"></div>`;
         btn.onclick = () => {
+            if (!benimUid) { alert("Bağlantı kuruluyor, birkaç saniye sonra tekrar deneyin."); return; }
             if (!kullaniciAdi && !adSor()) return;
-            const ref = db.ref(`aktifDuraklar/${d.id}/${anahtar(kullaniciAdi)}`);
-            if (bulutVerisi[d.id] && bulutVerisi[d.id][anahtar(kullaniciAdi)]) ref.remove();
-            else ref.set(true);
+            const ref = db.ref(`aktifDuraklar/${d.id}/${benimUid}`);
+            (benSeciliyim(d) ? ref.remove() : ref.set(kullaniciAdi)).catch(e => alert("Kaydedilemedi: " + e.message));
         };
         container.appendChild(btn);
 
@@ -173,23 +230,35 @@
         durakSecim.appendChild(secenek);
     });
 
-    db.ref().on('value', snap => {
-        const data = snap.val() || {};
-        bulutVerisi = data.aktifDuraklar || {};
-        const kayitliKonumlar = data.durakKonumlari || {};
-        duraklar.forEach((d, i) => {
-            const k = kayitliKonumlar[d.id];
-            d.lat = k ? k.lat : d.tahminiLat; d.lon = k ? k.lon : d.tahminiLon; d.isaretli = !!k;
+    // Firebase'den gelen verilerle ekranı günceller (giriş tamamlanınca başlar)
+    function verileriDinle() {
+        db.ref('aktifDuraklar').on('value', snap => {
+            bulutVerisi = snap.val() || {};
+            ekraniGuncelle();
+            anonsKontrol();
+        }, baglantiHatasi);
+        db.ref('durakKonumlari').on('value', snap => {
+            const kayitliKonumlar = snap.val() || {};
+            duraklar.forEach(d => {
+                const k = kayitliKonumlar[d.id];
+                d.lat = k ? k.lat : d.tahminiLat; d.lon = k ? k.lon : d.tahminiLon; d.isaretli = !!k;
+            });
+            haritayiGuncelle();
+        }, baglantiHatasi);
+        db.ref('aracKonumu').on('value', snap => {
+            const veri = snap.val();
+            document.getElementById('aracKonumuText').innerText = veri ? veri.nerede : "Beklemede";
+        }, baglantiHatasi);
+    }
 
+    function ekraniGuncelle() {
+        duraklar.forEach((d, i) => {
             const btn = document.getElementById("btn-"+i); const isimDiv = document.getElementById("isimler-"+i);
             const isimler = bekleyenler(d);
             if (isimler.length) { btn.classList.add('secili'); isimDiv.innerText = isimler.join(", "); }
             else { btn.classList.remove('secili'); isimDiv.innerText = ""; }
         });
-        document.getElementById('aracKonumuText').innerText = data.aracKonumu ? data.aracKonumu.nerede : "Beklemede";
-        haritayiGuncelle();
-        anonsKontrol();
-    });
+    }
 
     function konus(metin) {
         window.speechSynthesis.cancel();
